@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>블로그 SEO 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .viz-root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f2f1ec;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --good-text:      #006300;
+    --s1: #2a78d6; /* 소확정 */
+    --s2: #eb6834; /* 월정액연구소 */
+    --s3: #1baf7a; /* 해결일지 */
+    --s4: #eda100; /* IT 팁 블로그 (예정) */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --surface-2:      #232320;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --good-text:      #0ca30c;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --surface-2:      #232320;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --good-text:      #0ca30c;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page);
+    font-family: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) body { background: #0d0d0d; }
+  }
+  :root[data-theme="dark"] body { background: #0d0d0d; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  button { font-family: inherit; }
+
+  .viz-root { padding: 28px 16px 64px; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  header.top { margin-bottom: 22px; }
+  header.top h1 { margin: 0 0 6px; font-size: 22px; color: var(--text-primary); }
+  header.top p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
+  .updated-pill {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    font-size: 12.5px; color: var(--text-secondary); background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+  }
+  .updated-pill b { color: var(--text-primary); font-weight: 600; }
+
+  .status { font-size: 13.5px; color: var(--text-secondary); padding: 16px 0; }
+  .status.err { color: #b23; }
+
+  .setup-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 24px; line-height: 1.75; font-size: 13.5px; color: var(--text-secondary);
+  }
+  .setup-card h2 { margin: 0 0 10px; font-size: 16px; color: var(--text-primary); }
+  .setup-card ol { margin: 10px 0 0; padding-left: 20px; }
+  .setup-card code {
+    background: var(--surface-2); border-radius: 4px; padding: 1px 6px; font-size: 12.5px;
+    font-family: ui-monospace, "SF Mono", monospace;
+  }
+
+  /* ---- overview cards ---- */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .blog-card {
+    text-align: left; cursor: pointer; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px 14px; font-family: inherit; transition: border-color .12s, transform .08s;
+  }
+  .blog-card:hover { border-color: var(--text-muted); transform: translateY(-1px); }
+  .blog-card.active { border-color: var(--card-color); box-shadow: 0 0 0 1px var(--card-color); }
+  .blog-card .name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+  .blog-card .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--card-color); flex-shrink: 0; }
+  .blog-card .name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+  .blog-card .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .blog-card .stat-label { font-size: 11px; color: var(--text-muted); }
+  .blog-card .stat-value { font-size: 20px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .blog-card .sub-stats { display: flex; gap: 14px; margin: 6px 0 10px; font-size: 11.5px; color: var(--text-secondary); }
+  .blog-card .sub-stats b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .blog-card svg.spark { display: block; width: 100%; height: 36px; }
+
+  /* ---- section shell ---- */
+  section.topic-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px 20px; margin-bottom: 16px;
+  }
+  section.topic-card h2 { margin: 0; font-size: 16px; color: var(--text-primary); }
+  section.topic-card .sub { margin: 3px 0 0; font-size: 12.5px; color: var(--text-secondary); }
+  .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  .period-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .period-toggle button {
+    border: none; background: var(--surface-1); color: var(--text-secondary); font-size: 12px;
+    padding: 5px 11px; cursor: pointer; border-right: 1px solid var(--border);
+  }
+  .period-toggle button:last-child { border-right: none; }
+  .period-toggle button.active { background: var(--surface-2); color: var(--text-primary); font-weight: 600; }
+
+  /* ---- bar comparison ---- */
+  .bar-chart { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; }
+  .bar-row { display: grid; grid-template-columns: 96px 1fr 60px; align-items: center; gap: 10px; }
+  .bar-row .bar-label { font-size: 12.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .bar-row .bar-label .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .bar-track { position: relative; height: 18px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; min-width: 3px; transition: filter .12s; }
+  .bar-row:hover .bar-fill { filter: brightness(1.1); }
+  .bar-value { font-size: 12px; color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ---- line charts ---- */
+  .chart-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 4px; }
+  @media (max-width: 680px) { .chart-panels { grid-template-columns: 1fr; } }
+  .chart-panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .02em; color: var(--text-secondary); margin: 0 0 8px; font-weight: 600; }
+  .line-chart-wrap { position: relative; }
+  svg.line-chart { display: block; width: 100%; height: 170px; overflow: visible; }
+  .chart-tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 9px; font-size: 11.5px; color: var(--text-primary); white-space: nowrap;
+    transform: translate(-50%, -110%); opacity: 0; transition: opacity .08s;
+  }
+  .chart-tooltip b { font-variant-numeric: tabular-nums; }
+  .chart-tooltip .t-date { color: var(--text-muted); font-size: 10.5px; display: block; margin-top: 2px; }
+
+  /* ---- table ---- */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+  .data-table th, .data-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); color: var(--text-primary); }
+  .data-table th { color: var(--text-secondary); font-weight: 600; font-size: 11.5px; }
+  .data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .data-table tbody tr:hover { background: var(--surface-2); }
+  .table-scroll { overflow-x: auto; }
+
+  .empty-note { font-size: 13px; color: var(--text-muted); padding: 14px 0; }
+
+  footer.note { margin-top: 22px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+  footer.note a { color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="wrap">
+
+    <header class="top">
+      <h1>블로그 SEO 대시보드</h1>
+      <p>Google Search Console에서 매일 자동 수집한 데이터로, 운영 중인 블로그들의 검색 성과를 한 화면에서 비교합니다.</p>
+      <span class="updated-pill" id="updatedPill">데이터 불러오는 중&hellip;</span>
+    </header>
+
+    <div id="status" class="status">results/daily_summary.csv 불러오는 중&hellip;</div>
+    <div id="setupNote" hidden></div>
+    <div id="content" hidden>
+
+      <div class="card-grid" id="cardGrid"></div>
+
+      <section class="topic-card">
+        <div class="section-head">
+          <div>
+            <h2>블로그 비교</h2>
+            <p class="sub">기간 내 클릭수 기준</p>
+          </div>
+          <div class="period-toggle" id="cmpToggle">
+            <button data-days="7">7일</button>
+            <button data-days="28" class="active">28일</button>
+            <button data-days="90">90일</button>
+          </div>
+        </div>
+        <div class="bar-chart" id="cmpChart"></div>
+      </section>
+
+      <section class="topic-card" id="detailSection" hidden>
+        <div class="section-head">
+          <div>
+            <h2 id="detailTitle">블로그 상세</h2>
+            <p class="sub">최근 90일 추이 · 최근 28일 상위 검색어</p>
+          </div>
+        </div>
+        <div class="chart-panels">
+          <div class="chart-panel">
+            <h3>클릭수 추이</h3>
+            <div class="line-chart-wrap" id="clicksChartWrap"></div>
+          </div>
+          <div class="chart-panel">
+            <h3>노출수 추이</h3>
+            <div class="line-chart-wrap" id="imprChartWrap"></div>
+          </div>
+        </div>
+        <h3 style="margin-top:20px;">상위 검색어 (최근 28일)</h3>
+        <div class="table-scroll">
+          <table class="data-table" id="queryTable">
+            <thead>
+              <tr><th>검색어</th><th class="num">클릭</th><th class="num">노출</th><th class="num">CTR</th><th class="num">평균 순위</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-note" id="queryEmptyNote" hidden>아직 검색어 데이터가 없어요.</div>
+      </section>
+
+    </div>
+
+    <footer class="note" id="footerNote" hidden></footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SITE_COLOR_VAR = { 1: "--s1", 2: "--s2", 3: "--s3", 4: "--s4" };
+  var SITE_ORDER = ["소확정", "월정액연구소", "해결일지", "IT 팁 블로그"];
+
+  var statusEl = document.getElementById("status");
+  var setupNoteEl = document.getElementById("setupNote");
+  var contentEl = document.getElementById("content");
+  var updatedPill = document.getElementById("updatedPill");
+  var footerNote = document.getElementById("footerNote");
+  var cardGrid = document.getElementById("cardGrid");
+  var cmpChart = document.getElementById("cmpChart");
+  var cmpToggle = document.getElementById("cmpToggle");
+  var detailSection = document.getElementById("detailSection");
+  var detailTitle = document.getElementById("detailTitle");
+
+  var cssRoot = document.querySelector(".viz-root");
+  function colorVar(name) { return getComputedStyle(cssRoot).getPropertyValue(name).trim(); }
+
+  function parseCSV(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var rows = [], row = [], field = "", inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQuotes) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; } }
+        else { field += c; }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { row.push(field); field = ""; }
+        else if (c === '\r') { /* skip */ }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
+        else { field += c; }
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    if (!rows.length) return [];
+    var header = rows[0], out = [];
+    for (var r = 1; r < rows.length; r++) {
+      if (rows[r].length === 1 && rows[r][0] === "") continue;
+      var obj = {};
+      for (var c2 = 0; c2 < header.length; c2++) obj[header[c2]] = rows[r][c2];
+      out.push(obj);
+    }
+    return out;
+  }
+
+  function fetchText(path) {
+    return fetch(path, { cache: "no-store" }).then(function (res) {
+      if (!res.ok) throw new Error(path + " -> HTTP " + res.status);
+      return res.text();
+    });
+  }
+  function fetchTextOrNull(path) { return fetchText(path).catch(function () { return null; }); }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function fmtInt(n) { return Math.round(n).toLocaleString("ko-KR"); }
+  function fmtPos(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+
+  // ---------- data ----------
+  var dailyByProperty = {};  // name -> sorted [{date, clicks, impressions, ctr, position}]
+  var queriesByProperty = {}; // name -> [{query, clicks, impressions, ctr, position}]
+  var propertyColor = {};    // name -> css var value
+  var activeProperty = null;
+  var cmpDays = 28;
+
+  function init() {
+    Promise.all([
+      fetchTextOrNull("results/daily_summary.csv"),
+      fetchTextOrNull("results/top_queries.csv")
+    ]).then(function (results) {
+      var dailyText = results[0], queryText = results[1];
+      var dailyRows = dailyText ? parseCSV(dailyText) : [];
+      var queryRows = queryText ? parseCSV(queryText) : [];
+
+      if (!dailyRows.length) {
+        showSetupNote();
+        return;
+      }
+
+      dailyRows.forEach(function (r) {
+        var name = r.property;
+        if (!dailyByProperty[name]) dailyByProperty[name] = [];
+        dailyByProperty[name].push({
+          date: r.date,
+          clicks: Number(r.clicks) || 0,
+          impressions: Number(r.impressions) || 0,
+          ctr: Number(r.ctr) || 0,
+          position: Number(r.position) || 0
+        });
+      });
+      Object.keys(dailyByProperty).forEach(function (name) {
+        dailyByProperty[name].sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      });
+
+      queryRows.forEach(function (r) {
+        var name = r.property;
+        if (!queriesByProperty[name]) queriesByProperty[name] = [];
+        queriesByProperty[name].push({
+          query: r.query,
+          clicks: Number(r.clicks) || 0,
+          impressions: Number(r.impressions) || 0,
+          ctr: Number(r.ctr) || 0,
+          position: Number(r.position) || 0
+        });
+      });
+
+      var names = Object.keys(dailyByProperty).sort(function (a, b) {
+        var ia = SITE_ORDER.indexOf(a), ib = SITE_ORDER.indexOf(b);
+        if (ia === -1) ia = 99; if (ib === -1) ib = 99;
+        return ia - ib;
+      });
+      names.forEach(function (name, idx) {
+        var slot = (idx % 4) + 1;
+        propertyColor[name] = colorVar(SITE_COLOR_VAR[slot]);
+      });
+
+      statusEl.hidden = true;
+      contentEl.hidden = false;
+      var latestDate = dailyRows.map(function (r) { return r.date; }).sort().pop();
+      updatedPill.innerHTML = "최신 데이터: <b>" + escapeHtml(latestDate) + "</b> (Search Console 특성상 2~3일 지연될 수 있어요)";
+
+      renderCards(names);
+      renderComparison(names);
+      if (names.length) selectProperty(names[0]);
+
+      footerNote.hidden = false;
+      footerNote.innerHTML = "results/daily_summary.csv · results/top_queries.csv 를 GitHub Actions가 매일 자동 갱신합니다.";
+    }).catch(function (err) {
+      statusEl.textContent = "데이터를 불러오는 중 문제가 생겼어요: " + (err && err.message ? err.message : String(err));
+      statusEl.classList.add("err");
+    });
+  }
+
+  function showSetupNote() {
+    statusEl.hidden = true;
+    updatedPill.textContent = "아직 데이터 없음";
+    setupNoteEl.hidden = false;
+    setupNoteEl.innerHTML =
+      '<div class="setup-card">' +
+      '<h2>아직 수집된 데이터가 없어요</h2>' +
+      '<p>GitHub Actions가 처음 실행되면 <code>results/daily_summary.csv</code>가 자동으로 생성돼요. 아래를 확인해주세요.</p>' +
+      '<ol>' +
+      '<li>SETUP.md의 안내대로 서치콘솔 서비스 계정을 만들고, 각 블로그 속성에 뷰어로 추가했는지</li>' +
+      '<li>저장소 Settings → Secrets에 <code>GSC_SERVICE_ACCOUNT_JSON</code>을 등록했는지</li>' +
+      '<li>Actions 탭에서 "Daily Search Console Fetch" 워크플로를 한 번 수동 실행(workflow_dispatch)했는지</li>' +
+      '</ol></div>';
+  }
+
+  // ---------- sparkline ----------
+  function buildSparkline(points, color) {
+    if (!points.length) return "";
+    var w = 300, h = 36, pad = 3;
+    var vals = points.map(function (p) { return p.clicks; });
+    var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+    if (max === min) max = min + 1;
+    var stepX = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
+    var coords = points.map(function (p, i) {
+      var x = pad + i * stepX;
+      var y = pad + (h - pad * 2) * (1 - (p.clicks - min) / (max - min));
+      return [x, y];
+    });
+    var line = coords.map(function (c, i) { return (i === 0 ? "M" : "L") + c[0].toFixed(1) + "," + c[1].toFixed(1); }).join(" ");
+    var area = line + " L" + coords[coords.length - 1][0].toFixed(1) + "," + (h - pad) +
+      " L" + coords[0][0].toFixed(1) + "," + (h - pad) + " Z";
+    var last = coords[coords.length - 1];
+    return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<path d="' + area + '" fill="' + color + '" opacity="0.12" stroke="none"></path>' +
+      '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>' +
+      '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.6" fill="' + color + '"></circle>' +
+      '</svg>';
+  }
+
+  function windowRows(rows, days) {
+    return rows.slice(Math.max(0, rows.length - days));
+  }
+  function sum(rows, key) { return rows.reduce(function (a, r) { return a + r[key]; }, 0); }
+  function avg(rows, key) { return rows.length ? sum(rows, key) / rows.length : 0; }
+
+  // ---------- overview cards ----------
+  function renderCards(names) {
+    cardGrid.innerHTML = names.map(function (name) {
+      var rows = dailyByProperty[name];
+      var win = windowRows(rows, 28);
+      var color = propertyColor[name];
+      var clicks = sum(win, "clicks");
+      var impressions = sum(win, "impressions");
+      var avgPos = avg(win.filter(function (r) { return r.impressions > 0; }), "position");
+      return '<button type="button" class="blog-card" data-name="' + escapeHtml(name) + '" style="--card-color:' + color + '">' +
+        '<div class="name-row"><span class="dot"></span><span class="name">' + escapeHtml(name) + '</span></div>' +
+        '<div class="stat-row"><span class="stat-label">28일 클릭수</span></div>' +
+        '<div class="stat-value">' + fmtInt(clicks) + '</div>' +
+        '<div class="sub-stats"><span>노출 <b>' + fmtInt(impressions) + '</b></span><span>평균 순위 <b>' + (avgPos ? fmtPos(avgPos) : "-") + '</b></span></div>' +
+        buildSparkline(win, color) +
+        '</button>';
+    }).join("");
+
+    cardGrid.querySelectorAll(".blog-card").forEach(function (btn) {
+      btn.addEventListener("click", function () { selectProperty(btn.getAttribute("data-name")); });
+    });
+  }
+
+  function selectProperty(name) {
+    activeProperty = name;
+    cardGrid.querySelectorAll(".blog-card").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-name") === name);
+    });
+    detailSection.hidden = false;
+    detailTitle.textContent = name + " 상세";
+    var rows = dailyByProperty[name] || [];
+    var win = windowRows(rows, 90);
+    renderLineChart("clicksChartWrap", win, "clicks", propertyColor[name], fmtInt);
+    renderLineChart("imprChartWrap", win, "impressions", propertyColor[name], fmtInt);
+    renderQueryTable(name);
+  }
+
+  // ---------- comparison bar chart ----------
+  function renderComparison(names) {
+    cmpToggle.querySelectorAll("button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        cmpToggle.querySelectorAll("button").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        cmpDays = Number(btn.getAttribute("data-days"));
+        renderComparisonChart(names);
+      });
+    });
+    renderComparisonChart(names);
+  }
+
+  function renderComparisonChart(names) {
+    var totals = names.map(function (name) {
+      var win = windowRows(dailyByProperty[name] || [], cmpDays);
+      return { name: name, clicks: sum(win, "clicks") };
+    });
+    var max = Math.max.apply(null, totals.map(function (t) { return t.clicks; }), 1);
+    cmpChart.innerHTML = totals.map(function (t) {
+      var pct = max ? Math.max((t.clicks / max) * 100, t.clicks > 0 ? 1.5 : 0) : 0;
+      var color = propertyColor[t.name];
+      return '<div class="bar-row">' +
+        '<div class="bar-label"><span class="dot" style="background:' + color + '"></span>' + escapeHtml(t.name) + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + color + '"></div></div>' +
+        '<div class="bar-value">' + fmtInt(t.clicks) + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  // ---------- line chart with hover crosshair ----------
+  function renderLineChart(wrapId, rows, key, color, valueFmt) {
+    var wrap = document.getElementById(wrapId);
+    if (!rows.length) { wrap.innerHTML = '<div class="empty-note">데이터가 부족해요.</div>'; return; }
+
+    var w = 460, h = 170, padL = 4, padR = 4, padT = 10, padB = 22;
+    var vals = rows.map(function (r) { return r[key]; });
+    var maxV = Math.max.apply(null, vals);
+    var minV = 0;
+    if (maxV === minV) maxV = minV + 1;
+    var innerW = w - padL - padR, innerH = h - padT - padB;
+    var stepX = rows.length > 1 ? innerW / (rows.length - 1) : 0;
+
+    function xAt(i) { return padL + i * stepX; }
+    function yAt(v) { return padT + innerH * (1 - (v - minV) / (maxV - minV)); }
+
+    var coords = rows.map(function (r, i) { return [xAt(i), yAt(r[key])]; });
+    var line = coords.map(function (c, i) { return (i === 0 ? "M" : "L") + c[0].toFixed(1) + "," + c[1].toFixed(1); }).join(" ");
+
+    var gridLines = [0, 0.5, 1].map(function (f) {
+      var y = padT + innerH * f;
+      return '<line x1="' + padL + '" x2="' + (w - padR) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"></line>';
+    }).join("");
+
+    var gridLabels = [0, 0.5, 1].map(function (f) {
+      var y = padT + innerH * f;
+      var val = maxV - (maxV - minV) * f;
+      var label = valueFmt(val);
+      var boxW = Math.max(16, label.length * 6.5);
+      return '<rect x="' + (padL - 1) + '" y="' + (y - 12.5).toFixed(1) + '" width="' + boxW + '" height="11" fill="var(--surface-1)"></rect>' +
+        '<text x="' + padL + '" y="' + (y - 3).toFixed(1) + '" font-size="9.5" fill="var(--text-muted)">' + label + '</text>';
+    }).join("");
+
+    var firstDate = rows[0].date, lastDate = rows[rows.length - 1].date;
+    var xLabels = '<text x="' + padL + '" y="' + (h - 6) + '" font-size="9.5" fill="var(--text-muted)">' + escapeHtml(firstDate) + '</text>' +
+      '<text x="' + (w - padR) + '" y="' + (h - 6) + '" font-size="9.5" fill="var(--text-muted)" text-anchor="end">' + escapeHtml(lastDate) + '</text>';
+
+    var last = coords[coords.length - 1];
+
+    var svg = '<svg class="line-chart" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      gridLines +
+      '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>' +
+      '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3.2" fill="' + color + '"></circle>' +
+      '<line id="' + wrapId + '-cross" x1="0" x2="0" y1="' + padT + '" y2="' + (h - padB) + '" stroke="var(--baseline)" stroke-width="1" opacity="0"></line>' +
+      '<circle id="' + wrapId + '-dot" r="4" fill="' + color + '" stroke="var(--surface-1)" stroke-width="1.5" opacity="0"></circle>' +
+      gridLabels +
+      xLabels +
+      '<rect id="' + wrapId + '-hit" x="0" y="0" width="' + w + '" height="' + h + '" fill="transparent"></rect>' +
+      '</svg>' +
+      '<div class="chart-tooltip" id="' + wrapId + '-tip"></div>';
+
+    wrap.innerHTML = svg;
+
+    var svgEl = wrap.querySelector("svg");
+    var hitEl = document.getElementById(wrapId + "-hit");
+    var crossEl = document.getElementById(wrapId + "-cross");
+    var dotEl = document.getElementById(wrapId + "-dot");
+    var tipEl = document.getElementById(wrapId + "-tip");
+
+    function showAt(clientX) {
+      var rect = svgEl.getBoundingClientRect();
+      var relX = ((clientX - rect.left) / rect.width) * w;
+      var idx = Math.round((relX - padL) / (stepX || 1));
+      idx = Math.max(0, Math.min(rows.length - 1, idx));
+      var c = coords[idx];
+      crossEl.setAttribute("x1", c[0]); crossEl.setAttribute("x2", c[0]); crossEl.setAttribute("opacity", "1");
+      dotEl.setAttribute("cx", c[0]); dotEl.setAttribute("cy", c[1]); dotEl.setAttribute("opacity", "1");
+      tipEl.style.left = ((c[0] / w) * 100) + "%";
+      tipEl.style.top = ((c[1] / h) * 100) + "%";
+      tipEl.style.opacity = "1";
+      tipEl.innerHTML = "<b>" + valueFmt(rows[idx][key]) + "</b><span class='t-date'>" + escapeHtml(rows[idx].date) + "</span>";
+    }
+    function hide() {
+      crossEl.setAttribute("opacity", "0"); dotEl.setAttribute("opacity", "0"); tipEl.style.opacity = "0";
+    }
+    hitEl.addEventListener("mousemove", function (e) { showAt(e.clientX); });
+    hitEl.addEventListener("mouseleave", hide);
+    hitEl.addEventListener("touchstart", function (e) { if (e.touches[0]) showAt(e.touches[0].clientX); }, { passive: true });
+    hitEl.addEventListener("touchmove", function (e) { if (e.touches[0]) showAt(e.touches[0].clientX); }, { passive: true });
+    hitEl.addEventListener("touchend", hide);
+  }
+
+  // ---------- query table ----------
+  function renderQueryTable(name) {
+    var rows = (queriesByProperty[name] || []).slice().sort(function (a, b) { return b.clicks - a.clicks; });
+    var tbody = document.querySelector("#queryTable tbody");
+    var emptyNote = document.getElementById("queryEmptyNote");
+    if (!rows.length) {
+      tbody.innerHTML = "";
+      emptyNote.hidden = false;
+      return;
+    }
+    emptyNote.hidden = true;
+    tbody.innerHTML = rows.map(function (r) {
+      return "<tr><td>" + escapeHtml(r.query) + "</td>" +
+        '<td class="num">' + fmtInt(r.clicks) + "</td>" +
+        '<td class="num">' + fmtInt(r.impressions) + "</td>" +
+        '<td class="num">' + r.ctr.toFixed(1) + "%</td>" +
+        '<td class="num">' + fmtPos(r.position) + "</td></tr>";
+    }).join("");
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

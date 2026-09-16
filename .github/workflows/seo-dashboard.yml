@@ -1,0 +1,38 @@
+name: Daily Search Console Fetch
+
+on:
+  schedule:
+    # 매일 한국시간 오전 9시 = UTC 전날 24:00(=00:00)
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}   # 수동 실행 버튼도 사용 가능
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-search-console:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 라이브러리 설치
+        run: pip install google-api-python-client google-auth
+
+      - name: 서치콘솔 데이터 수집
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+        run: python fetch_search_console.py
+
+      - name: 결과 커밋 및 푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results/
+          git diff --quiet --cached || git commit -m "chore: seo dashboard data update $(date +'%Y-%m-%d')"
+          git push
